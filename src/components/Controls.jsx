@@ -22,11 +22,16 @@ export default function Controls() {
     const position = getRandomPosition(2.5)
     position[1] = 0
     
+    // Add slight random offset to position for natural placement
+    position[0] += (Math.random() - 0.5) * 0.3
+    position[2] += (Math.random() - 0.5) * 0.3
+    
     addObject({
       id: Date.now() + Math.random(),
       type: 'tree',
       position,
-      isNew: true
+      isNew: true,
+      seed: Math.random() * 1000 // Add seed for consistent randomization
     })
   }
   

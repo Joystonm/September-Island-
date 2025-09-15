@@ -7,6 +7,7 @@ import Creature from './Creature'
 import LeafSpawner from './LeafSpawner'
 import Bird from './Bird'
 import Dog from './Dog'
+import WishLantern from './WishLantern'
 import { useWorldState } from '../hooks/useWorldState'
 
 function Firefly({ position }) {
@@ -243,7 +244,7 @@ function Island() {
 }
 
 export default function GlobeScene() {
-  const { scene, objects } = useWorldState()
+  const { scene, objects, natureMode, cozyMode, lanterns, removeLantern } = useWorldState()
   const [birds, setBirds] = useState([])
   const [dogs, setDogs] = useState([])
   
@@ -285,13 +286,24 @@ export default function GlobeScene() {
   
   const lightIntensity = scene === 'night' ? 0.4 : 0.9
   const ambientIntensity = scene === 'night' ? 0.3 : 0.6
+  let lightColor = "#FFFFFF"
   
+  // Nature mode: bright natural lighting
+  if (natureMode) {
+    lightColor = "#F0F8FF"
+  }
+  
+  // Cozy mode: warm fireplace glow
+  if (cozyMode) {
+    lightColor = "#FFD700"
+  }  
   return (
     <>
-      <ambientLight intensity={ambientIntensity} />
+      <ambientLight intensity={ambientIntensity} color={lightColor} />
       <directionalLight 
         position={[10, 10, 5]} 
         intensity={lightIntensity}
+        color={lightColor}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -342,7 +354,14 @@ export default function GlobeScene() {
         />
       ))}
       
-      <LeafSpawner />
+      
+      {lanterns.map(lantern => (
+        <WishLantern
+          key={lantern.id}
+          position={lantern.position}
+          onRemove={() => removeLantern(lantern.id)}
+        />
+      ))}      <LeafSpawner />
     </>
   )
 }

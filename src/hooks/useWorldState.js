@@ -7,6 +7,13 @@ export const useWorldState = create((set, get) => ({
   autumnStage: 0, // 0=green, 1=yellow, 2=orange, 3=deep red
   isTransitioning: false,
   autumnTreeIds: [],
+  natureMode: false,
+  cozyMode: false,
+  isTogglingNature: false,
+  isTogglingCozy: false,
+  lanterns: [],
+  lanternMode: false,
+  lanternInterval: null,
   
   addObject: (object) => set((state) => ({ 
     objects: [...state.objects, object] 
@@ -27,6 +34,31 @@ export const useWorldState = create((set, get) => ({
     windEnabled: !state.windEnabled 
   })),
   
+  toggleNature: () => {
+    const state = get()
+    if (!state.isTogglingNature) {
+      set({ isTogglingNature: true })
+      setTimeout(() => {
+        set((state) => ({ 
+          natureMode: !state.natureMode,
+          isTogglingNature: false
+        }))
+      }, 500)
+    }
+  },
+  
+  toggleCozy: () => {
+    const state = get()
+    if (!state.isTogglingCozy) {
+      set({ isTogglingCozy: true })
+      setTimeout(() => {
+        set((state) => ({ 
+          cozyMode: !state.cozyMode,
+          isTogglingCozy: false
+        }))
+      }, 500)
+    }
+  },  
   progressAutumn: () => {
     const state = get()
     if (state.isTransitioning || state.autumnStage >= 3) return
@@ -102,11 +134,44 @@ export const useWorldState = create((set, get) => ({
       set({ isTransitioning: false })
     }, 2000)
   },
+  spawnLantern: () => {
+    const newLantern = {
+      id: Date.now() + Math.random(),
+      position: [
+        (Math.random() - 0.5) * 8,
+        0.5,
+        (Math.random() - 0.5) * 8
+      ]
+    }
+    
+    set((state) => ({ lanterns: [...state.lanterns, newLantern] }))
+  },
+  
+  removeLantern: (id) => set((state) => ({
+    lanterns: state.lanterns.filter(lantern => lantern.id !== id)
+  })),
+  
+  toggleLanternMode: () => {
+    const state = get()
+    if (state.lanternMode) {
+      // Turn off
+      if (state.lanternInterval) {
+        clearInterval(state.lanternInterval)
+      }
+      set({ lanternMode: false, lanternInterval: null })
+    } else {
+      // Turn on
+      const interval = setInterval(() => {
+        get().spawnLantern()
+      }, 3000)
+      set({ lanternMode: true, lanternInterval: interval })
+    }
+  },
   
   resetAutumn: () => set({ 
     autumnStage: 0,
     isTransitioning: false,
     objects: [],
     autumnTreeIds: []
-  }),
+  })
 }))

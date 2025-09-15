@@ -3,7 +3,7 @@ import { useWorldState } from '../hooks/useWorldState'
 import { getRandomPosition } from '../utils/randomPosition'
 
 export default function Controls() {
-  const { addObject, toggleWind, windEnabled, progressAutumn, autumnStage, isTransitioning } = useWorldState()
+  const { addObject, toggleWind, windEnabled, progressAutumn, autumnStage, isTransitioning, toggleLanternMode, lanternMode } = useWorldState()
   const buttonRef = useRef()
   
   const addRandomPumpkin = () => {
@@ -22,7 +22,6 @@ export default function Controls() {
     const position = getRandomPosition(2.5)
     position[1] = 0
     
-    // Add slight random offset to position for natural placement
     position[0] += (Math.random() - 0.5) * 0.3
     position[2] += (Math.random() - 0.5) * 0.3
     
@@ -31,14 +30,13 @@ export default function Controls() {
       type: 'tree',
       position,
       isNew: true,
-      seed: Math.random() * 1000 // Add seed for consistent randomization
+      seed: Math.random() * 1000
     })
   }
   
   const handleProgressAutumn = () => {
     if (!isTransitioning) {
       if (autumnStage >= 3) {
-        // Bounce animation when maxed out
         if (buttonRef.current) {
           buttonRef.current.style.transform = 'scale(1.2)'
           setTimeout(() => {
@@ -126,6 +124,18 @@ export default function Controls() {
         title={`Wind ${windEnabled ? 'On' : 'Off'}`}
       >
         💨
+      </button>
+      
+      <button 
+        onClick={toggleLanternMode}
+        className={`w-12 h-12 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center text-lg ${
+          lanternMode 
+            ? 'bg-yellow-200 hover:bg-yellow-300 text-yellow-800 ring-2 ring-yellow-400 animate-pulse' 
+            : 'bg-orange-200 hover:bg-orange-300 text-orange-800'
+        }`}
+        title={`Lanterns ${lanternMode ? 'Auto' : 'Off'}`}
+      >
+        🏮
       </button>
     </div>
   )

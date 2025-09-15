@@ -1,8 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useWorldState } from '../hooks/useWorldState'
 
-export default function ProceduralTree({ position = [0, 0, 0], isNew = false, autumnStage: propAutumnStage, isAutumnTree = false }) {
+export default function ProceduralTree({ position = [0, 0, 0], isNew = false, autumnStage: propAutumnStage, isAutumnTree = false, seed }) {
   const treeRef = useRef()
   const [shake, setShake] = useState(0)
   const [scale, setScale] = useState(isNew ? 0 : 1)
@@ -11,6 +11,32 @@ export default function ProceduralTree({ position = [0, 0, 0], isNew = false, au
   const [targetColors, setTargetColors] = useState(null)
   const [colorProgress, setColorProgress] = useState(0)
   const { addObject, windEnabled, autumnStage: globalAutumnStage } = useWorldState()
+  
+  // Generate random tree characteristics once
+  const treeVariation = useMemo(() => {
+    const baseSeed = seed || (position[0] + position[2] * 100) // Use provided seed or position-based
+    const random = (min, max, offset = 0) => min + (Math.abs(Math.sin(baseSeed * 12.9898 + offset)) * (max - min))
+    
+    return {
+      // Trunk variations
+      trunkHeight: random(0.5, 0.8, 1),
+      trunkWidth: random(0.12, 0.25, 2),
+      trunkTint: random(0.8, 1.2, 3),
+      
+      // Leaf variations
+      leafSize: random(0.4, 0.8, 4),
+      leafCount: Math.floor(random(2, 4, 5)),
+      treeShape: random(0, 1, 6) > 0.5 ? 'tall' : 'round',
+      
+      // Position variations
+      posOffset: [random(-0.1, 0.1, 7), 0, random(-0.1, 0.1, 8)],
+      rotation: random(-0.2, 0.2, 9),
+      
+      // Special features
+      hasBird: random(0, 1, 10) > 0.85,
+      hasMushroom: random(0, 1, 11) > 0.9
+    }
+  }, [position[0], position[2], seed])
   
   // Define color stages for gradient progression
   const colorStages = [
@@ -112,29 +138,73 @@ export default function ProceduralTree({ position = [0, 0, 0], isNew = false, au
   if (opacity <= 0) return null
   
   return (
-    <group ref={treeRef} position={position} onClick={handleClick}>
-      <mesh position={[0, 0.3, 0]}>
-        <cylinderGeometry args={[0.15, 0.2, 0.6, 8]} />
-        <meshStandardMaterial color="#8B4513" transparent opacity={opacity} />
+    <group ref={treeRef} position={[
+      position[0] + treeVariation.posOffset[0],
+      position[1] + treeVariation.posOffset[1], 
+      position[2] + treeVariation.posOffset[2]
+    ]} rotation={[0, treeVariation.rotation, 0]} onClick={handleClick}>
+      {/* Trunk */}
+      <mesh position={[0, treeVariation.trunkHeight * 0.5, 0]}>
+        <cylinderGeometry args={[treeVariation.trunkWidth * 0.75, treeVariation.trunkWidth, treeVariation.trunkHeight, 8]} />
+        <meshStandardMaterial 
+          color={`hsl(25, 60%, ${30 * treeVariation.trunkTint}%)`} 
+          transparent 
+          opacity={opacity} 
+        />
       </mesh>
       
-      <mesh position={[0, 1, 0]}>
-        <sphereGeometry args={[0.6, 12, 12]} />
-        <meshStandardMaterial color={leafColors[0]} transparent opacity={opacity} />
-      </mesh>
-      <mesh position={[0.2, 1.3, 0.1]}>
-        <sphereGeometry args={[0.4, 12, 12]} />
-        <meshStandardMaterial color={leafColors[1]} transparent opacity={opacity} />
-      </mesh>
-      <mesh position={[-0.1, 1.2, -0.2]}>
-        <sphereGeometry args={[0.35, 12, 12]} />
-        <meshStandardMaterial color={leafColors[2]} transparent opacity={opacity} />
-      </mesh>
+      {/* Leaves - varied based on tree shape */}
+      {treeVariation.treeShape === 'tall' ? (
+        // Tall thin tree
+        <>
+          <mesh position={[0, treeVariation.trunkHeight + 0.4, 0]}>
+            <sphereGeometry args={[treeVariation.leafSize * 0.7, 12, 12]} />
+            <meshStandardMaterial color={leafColors[0]} transparent opacity={opacity} />
+          </mesh>
+          <mesh position={[0, treeVariation.trunkHeight + 0.8, 0]}>
+            <sphereGeometry args={[treeVariation.leafSize * 0.5, 12, 12]} />
+            <meshStandardMaterial color={leafColors[1]} transparent opacity={opacity} />
+          </mesh>
+        </>
+      ) : (
+        // Round bushy tree
+        <>
+          <mesh position={[0, treeVariation.trunkHeight + 0.2, 0]}>
+            <sphereGeometry args={[treeVariation.leafSize, 12, 12]} />
+            <meshStandardMaterial color={leafColors[0]} transparent opacity={opacity} />
+          </mesh>
+          <mesh position={[0.2 * treeVariation.leafSize, treeVariation.trunkHeight + 0.4, 0.1 * treeVariation.leafSize]}>
+            <sphereGeometry args={[treeVariation.leafSize * 0.6, 12, 12]} />
+            <meshStandardMaterial color={leafColors[1]} transparent opacity={opacity} />
+          </mesh>
+          <mesh position={[-0.1 * treeVariation.leafSize, treeVariation.trunkHeight + 0.3, -0.2 * treeVariation.leafSize]}>
+            <sphereGeometry args={[treeVariation.leafSize * 0.55, 12, 12]} />
+            <meshStandardMaterial color={leafColors[2]} transparent opacity={opacity} />
+          </mesh>
+        </>
+      )}
       
-      <mesh position={[0, 1.8, 0]}>
-        <sphereGeometry args={[0.05, 8, 8]} />
-        <meshStandardMaterial color="#FF6347" transparent opacity={opacity} />
-      </mesh>
+      {/* Optional bird */}
+      {treeVariation.hasBird && (
+        <mesh position={[0.3, treeVariation.trunkHeight + 0.8, 0.2]}>
+          <sphereGeometry args={[0.03, 6, 6]} />
+          <meshStandardMaterial color="#FF6B6B" />
+        </mesh>
+      )}
+      
+      {/* Optional glowing mushroom */}
+      {treeVariation.hasMushroom && (
+        <group position={[0.4, 0.05, -0.3]}>
+          <mesh position={[0, 0.02, 0]}>
+            <cylinderGeometry args={[0.02, 0.02, 0.04, 6]} />
+            <meshStandardMaterial color="#F5DEB3" />
+          </mesh>
+          <mesh position={[0, 0.05, 0]}>
+            <sphereGeometry args={[0.04, 8, 8]} />
+            <meshStandardMaterial color="#FF6B47" emissive="#FF6B47" emissiveIntensity={0.2} />
+          </mesh>
+        </group>
+      )}
     </group>
   )
 }
